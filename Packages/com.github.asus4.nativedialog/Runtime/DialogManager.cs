@@ -48,12 +48,12 @@ namespace NativeDialog
                 callbacks = new Dictionary<int, Action<bool>>();
                 dialog = CreateDialog();
 
-                // Set default label
-                SetLabel("YES", "NO", "CLOSE");
+                // Set default label - updated to match game style
+                SetLabel("OK", "CANCEL", "Try again");
             }
             else
             {
-                // If s singleton already exists and you find
+                // If a singleton already exists and you find
                 // another reference in scene, destroy it!
                 if (this != instance)
                 {
@@ -92,11 +92,24 @@ namespace NativeDialog
         }
         #endregion
 
+        #region Public Methods
+        /// <summary>
+        /// Set the label text for dialog buttons
+        /// </summary>
+        /// <param name="decide">Text for Yes/OK button</param>
+        /// <param name="cancel">Text for No/Cancel button</param>
+        /// <param name="close">Text for Close/Done button</param>
         public static void SetLabel(string decide, string cancel, string close)
         {
             Instance.dialog.SetLabel(decide, cancel, close);
         }
 
+        /// <summary>
+        /// Show a dialog with Yes/No options
+        /// </summary>
+        /// <param name="message">Dialog message</param>
+        /// <param name="callback">Callback action (true = Yes, false = No)</param>
+        /// <returns>Dialog ID</returns>
         public static int ShowSelect(string message, Action<bool> callback)
         {
             int id = Instance.dialog.ShowSelect(message);
@@ -104,6 +117,13 @@ namespace NativeDialog
             return id;
         }
 
+        /// <summary>
+        /// Show a dialog with Yes/No options and title
+        /// </summary>
+        /// <param name="title">Dialog title</param>
+        /// <param name="message">Dialog message</param>
+        /// <param name="callback">Callback action (true = Yes, false = No)</param>
+        /// <returns>Dialog ID</returns>
         public static int ShowSelect(string title, string message, Action<bool> callback)
         {
             int id = Instance.dialog.ShowSelect(title, message);
@@ -111,6 +131,12 @@ namespace NativeDialog
             return id;
         }
 
+        /// <summary>
+        /// Show a dialog with a single Close button
+        /// </summary>
+        /// <param name="message">Dialog message</param>
+        /// <param name="callback">Callback action (always true)</param>
+        /// <returns>Dialog ID</returns>
         public static int ShowSubmit(string message, Action<bool> callback)
         {
             int id = Instance.dialog.ShowSubmit(message);
@@ -118,13 +144,42 @@ namespace NativeDialog
             return id;
         }
 
-        public static int ShowSubmit(string title, string message, Action<bool> del)
+        /// <summary>
+        /// Show a dialog with a single Close button and title
+        /// </summary>
+        /// <param name="title">Dialog title</param>
+        /// <param name="message">Dialog message</param>
+        /// <param name="callback">Callback action (always true)</param>
+        /// <returns>Dialog ID</returns>
+        public static int ShowSubmit(string title, string message, Action<bool> callback)
         {
             int id = Instance.dialog.ShowSubmit(title, message);
-            Instance.callbacks.Add(id, del);
+            Instance.callbacks.Add(id, callback);
             return id;
         }
 
+        /// <summary>
+        /// Show a connection error dialog with the Clash Royale style
+        /// </summary>
+        /// <param name="callback">Callback action when Try Again is pressed</param>
+        /// <returns>Dialog ID</returns>
+        public static int ShowConnectionError(Action<bool> callback)
+        {
+            // Set the label to "Try again" to get special styling
+            SetLabel("OK", "CANCEL", "Try again");
+            
+            // Show the connection error dialog with standard message
+            return ShowSubmit(
+                "Connection error",
+                "Unable to connect with the server.\nCheck your internet connection and try again.",
+                callback
+            );
+        }
+
+        /// <summary>
+        /// Dismiss a dialog by ID
+        /// </summary>
+        /// <param name="id">Dialog ID to dismiss</param>
         public static void Dissmiss(int id)
         {
             Instance.dialog.Dissmiss(id);
@@ -140,7 +195,7 @@ namespace NativeDialog
                 Debug.LogWarning("undefined id:" + id);
             }
         }
-
+        #endregion
 
         #region Invoked from Native Plugin
         public void OnSubmit(string idStr)
@@ -171,5 +226,38 @@ namespace NativeDialog
             }
         }
         #endregion
+    }
+
+    /// <summary>
+    /// Extension methods for DialogManager to provide convenience methods
+    /// </summary>
+    public static class DialogManagerExtensions
+    {
+        /// <summary>
+        /// Show a connection error dialog with retry callback
+        /// </summary>
+        /// <param name="dialogManager">DialogManager instance</param>
+        /// <param name="onTryAgain">Action to execute when Try again is pressed</param>
+        /// <returns>Dialog ID</returns>
+        public static int ShowConnectionError(this DialogManager dialogManager, Action onTryAgain)
+        {
+            // Set the "Try again" label to ensure proper styling
+            DialogManager.SetLabel("OK", "CANCEL", "Try again");
+            
+            // Convert the simple Action to match DialogManager's callback
+            Action<bool> callback = (result) => {
+                if (result && onTryAgain != null)
+                {
+                    onTryAgain();
+                }
+            };
+            
+            // Show the connection error dialog
+            return DialogManager.ShowSubmit(
+                "Connection error",
+                "Unable to connect with the server.\nCheck your internet connection and try again.",
+                callback
+            );
+        }
     }
 }

@@ -17,6 +17,7 @@ import android.widget.LinearLayout;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.view.ViewGroup.LayoutParams;
+import android.util.Log;
 
 import com.unity3d.player.UnityPlayer;
 
@@ -129,6 +130,33 @@ public class DialogManager {
         return id;
     }
     
+    private Button createGameButton(Activity activity, String text, boolean isPositive) {
+        // Create button with custom style
+        Button button = new Button(activity);
+        button.setText(text);
+        button.setTextColor(Color.parseColor("#3B88C3")); // Clash Royale blue
+        button.setTextSize(18);
+        button.setAllCaps(false);
+        button.setPadding(20, 15, 20, 15);
+        button.setTypeface(null, Typeface.BOLD);
+        
+        // Create background drawable for button
+        GradientDrawable buttonBackground = new GradientDrawable();
+        buttonBackground.setCornerRadius(8); // Rounded corners
+        
+        if (isPositive && text.equals("Try again")) {
+            // Special styling for "Try again" button
+            button.setTextColor(Color.WHITE);
+            buttonBackground.setColor(Color.parseColor("#3B88C3")); // Blue background
+        } else {
+            // Default transparent background
+            buttonBackground.setColor(Color.TRANSPARENT);
+        }
+        
+        button.setBackground(buttonBackground);
+        return button;
+    }
+    
     private void createGameStyleDialog(Activity activity, String title, String message, final int id, boolean showCancel) {
         // Create a custom dialog with game style
         AlertDialog.Builder builder = new AlertDialog.Builder(activity);
@@ -136,8 +164,13 @@ public class DialogManager {
         // Create a custom view for the dialog
         LinearLayout dialogLayout = new LinearLayout(activity);
         dialogLayout.setOrientation(LinearLayout.VERTICAL);
-        dialogLayout.setPadding(30, 30, 30, 30);
-        dialogLayout.setBackgroundColor(Color.parseColor("#80000000")); // Semi-transparent background
+        dialogLayout.setPadding(30, 30, 30, 20); // Less padding at bottom
+        
+        // Set rounded corners for dialog background
+        GradientDrawable dialogBackground = new GradientDrawable();
+        dialogBackground.setCornerRadius(15); // Rounded corners
+        dialogBackground.setColor(Color.parseColor("#463C33")); // Dark brown background
+        dialogLayout.setBackground(dialogBackground);
         
         // Create title text view if title exists
         if (title != null && !title.isEmpty()) {
@@ -146,7 +179,7 @@ public class DialogManager {
             titleView.setTextColor(Color.WHITE);
             titleView.setTextSize(20);
             titleView.setGravity(Gravity.CENTER);
-            titleView.setPadding(0, 0, 0, 20);
+            titleView.setPadding(0, 0, 0, 10);
             titleView.setTypeface(null, Typeface.BOLD);
             dialogLayout.addView(titleView);
         }
@@ -157,42 +190,52 @@ public class DialogManager {
         messageView.setTextColor(Color.WHITE);
         messageView.setTextSize(16);
         messageView.setGravity(Gravity.CENTER);
-        messageView.setPadding(0, 10, 0, 30);
+        messageView.setPadding(20, 10, 20, 30);
         dialogLayout.addView(messageView);
         
         // Add divider
         View divider = new View(activity);
-        divider.setBackgroundColor(Color.parseColor("#444444"));
+        divider.setBackgroundColor(Color.parseColor("#333333"));
         LinearLayout.LayoutParams dividerParams = new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, 1);
         dialogLayout.addView(divider, dividerParams);
         
-        // Create button(s)
-        Button positiveButton = new Button(activity);
-        positiveButton.setText(showCancel ? decideLabel : closeLabel);
-        positiveButton.setTextColor(Color.parseColor("#3B88C3")); // Clash Royale blue
-        positiveButton.setBackgroundColor(Color.TRANSPARENT);
-        positiveButton.setTextSize(16);
-        positiveButton.setAllCaps(false); // No all caps to match game style
+        // Create button layout
+        LinearLayout buttonLayout = new LinearLayout(activity);
+        buttonLayout.setOrientation(LinearLayout.VERTICAL);
+        buttonLayout.setGravity(Gravity.CENTER);
+        buttonLayout.setPadding(0, 0, 0, 0);
+        
+        // Special handling for "Try again" button
+        boolean isTryAgainDialog = !showCancel && closeLabel.equals("Try again");
+        
+        // Create Try Again/OK button (positive button)
+        Button positiveButton = createGameButton(activity, 
+                                                showCancel ? decideLabel : closeLabel, 
+                                                true);
+        
+        // Adding click listener for the button
         positiveButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                UnityPlayer.UnitySendMessage("DialogManager", "OnSubmit", String.valueOf(id));
-                _dialogs.delete(id);
-                _dialogs.get(id).dismiss();
+                try {
+                    AlertDialog dialog = _dialogs.get(id);
+                    if (dialog != null) {
+                        UnityPlayer.UnitySendMessage("DialogManager", "OnSubmit", String.valueOf(id));
+                        _dialogs.delete(id);
+                        dialog.dismiss();
+                    }
+                } catch (Exception e) {
+                    Log.e("DialogManager", "Error in onClick: " + e.getMessage());
+                }
             }
         });
         
-        LinearLayout buttonLayout = new LinearLayout(activity);
-        buttonLayout.setOrientation(LinearLayout.HORIZONTAL);
-        buttonLayout.setGravity(Gravity.CENTER);
-        
         if (showCancel) {
-            Button negativeButton = new Button(activity);
-            negativeButton.setText(cancelLabel);
-            negativeButton.setTextColor(Color.parseColor("#3B88C3")); // Clash Royale blue
-            negativeButton.setBackgroundColor(Color.TRANSPARENT);
-            negativeButton.setTextSize(16);
-            negativeButton.setAllCaps(false); // No all caps to match game style
+            // For two buttons layout (horizontal)
+            buttonLayout.setOrientation(LinearLayout.HORIZONTAL);
+            
+            Button negativeButton = createGameButton(activity, cancelLabel, false);
+            
             negativeButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -209,8 +252,12 @@ public class DialogManager {
             buttonLayout.addView(negativeButton, buttonParams);
             buttonLayout.addView(positiveButton, buttonParams);
         } else {
-            // For single button layout
-            LinearLayout.LayoutParams buttonParams = new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT);
+            // For single button layout (like the "Try again" button in the image)
+            LinearLayout.LayoutParams buttonParams = new LinearLayout.LayoutParams(
+                LayoutParams.MATCH_PARENT, 
+                LayoutParams.WRAP_CONTENT
+            );
+            buttonParams.setMargins(20, 10, 20, 10);
             buttonLayout.addView(positiveButton, buttonParams);
         }
         

@@ -80,12 +80,21 @@ static UNDialogManager * shardDialogManager;
                                                                       preferredStyle:UIAlertControllerStyleAlert];
     
     // Customize alert appearance
+    // Note: We'll need to use appearance proxy and custom handling since UIAlertController 
+    // has limited customization options
+
+    // Apply styling to the alert controller by overriding the default appearance  
+    // This is a hook into the subviews to change their appearance
+    [alertController viewDidLoad];
     UIView *firstSubview = alertController.view.subviews.firstObject;
     UIView *alertContentView = firstSubview.subviews.firstObject;
-    alertContentView.backgroundColor = [UIColor colorWithRed:0.2 green:0.2 blue:0.25 alpha:0.85];
-    alertContentView.layer.cornerRadius = 15;
     
-    // Change text colors
+    // Set background color to match Clash Royale dark brown
+    alertContentView.backgroundColor = [UIColor colorWithRed:0.275 green:0.235 blue:0.2 alpha:1.0]; // #463C33
+    alertContentView.layer.cornerRadius = 15;
+    alertContentView.clipsToBounds = YES;
+    
+    // Change text colors and attributes
     NSMutableAttributedString *attributedTitle = [[NSMutableAttributedString alloc] initWithString:title ? title : @""];
     [attributedTitle addAttribute:NSForegroundColorAttributeName
                             value:[UIColor whiteColor]
@@ -158,17 +167,38 @@ static UNDialogManager * shardDialogManager;
     
     UIAlertController *alertController = [self createGameStyleAlert:title message:msg hasCancel:NO];
     
-    // Create the action with game-like styling
+    // Check if this is a "Try again" dialog
+    BOOL isTryAgainDialog = [closeLabel isEqualToString:@"Try again"];
+    
+    // Create action button
     UIAlertAction *closeAction = [UIAlertAction actionWithTitle:closeLabel
-                                                          style:UIAlertActionStyleDefault
-                                                        handler:^(UIAlertAction * _Nonnull action) {
-        NSString *tag = [NSString stringWithFormat:@"%d", _id];
-        UnitySendMessage("DialogManager", "OnSubmit", tag.UTF8String);
-        [alerts removeObjectForKey:@(_id)];
+                                                         style:UIAlertActionStyleDefault
+                                                       handler:^(UIAlertAction * _Nonnull action) {
+        @try {
+            NSString *tag = [NSString stringWithFormat:@"%d", _id];
+            UnitySendMessage("DialogManager", "OnSubmit", tag.UTF8String);
+            [alerts removeObjectForKey:@(_id)];
+        } @catch (NSException *exception) {
+            NSLog(@"Exception in dialog action: %@", exception.reason);
+        }
     }];
     
-    // Change text color of button to Clash Royale blue
-    [closeAction setValue:[UIColor colorWithRed:0.231 green:0.533 blue:0.765 alpha:1.0] forKey:@"titleTextColor"];
+    // Special styling for "Try again" button - use different key for "Try again" button color
+    if (isTryAgainDialog) {
+        // For "Try again" button, use white text
+        [closeAction setValue:[UIColor whiteColor] forKey:@"titleTextColor"];
+        
+        // Attempt to set background color (note: this is challenging in UIAlertController)
+        // This uses undocumented APIs and may not work perfectly on all iOS versions
+        [alertController setValue:@YES forKey:@"alertStyleDark"];
+        
+        // Add a preference to use custom button appearance
+        NSNumber *preferredStyle = @(UIAlertActionStyleDestructive);
+        [closeAction setValue:preferredStyle forKey:@"preferredStyle"];
+    } else {
+        // For regular buttons, use Clash Royale blue text
+        [closeAction setValue:[UIColor colorWithRed:0.231 green:0.533 blue:0.765 alpha:1.0] forKey:@"titleTextColor"];
+    }
     
     [alertController addAction:closeAction];
     
