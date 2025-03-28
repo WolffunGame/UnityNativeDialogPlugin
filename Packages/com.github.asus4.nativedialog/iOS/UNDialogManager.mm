@@ -63,86 +63,135 @@ static UNDialogManager * shardDialogManager;
 }
 
 - (id) init {
-    alerts = [NSMutableDictionary dictionary];
-    return [super init];
+    self = [super init];
+    if (self) {
+        alerts = [NSMutableDictionary dictionary];
+        decideLabel = @"YES";
+        cancelLabel = @"NO";
+        closeLabel = @"CLOSE";
+    }
+    return self;
 }
 
+// Create custom styled game-like alerts for iOS
+- (UIAlertController *)createGameStyleAlert:(NSString *)title message:(NSString *)message hasCancel:(BOOL)hasCancel {
+    UIAlertController *alertController = [UIAlertController alertControllerWithTitle:title
+                                                                             message:message
+                                                                      preferredStyle:UIAlertControllerStyleAlert];
+    
+    // Customize alert appearance
+    UIView *firstSubview = alertController.view.subviews.firstObject;
+    UIView *alertContentView = firstSubview.subviews.firstObject;
+    alertContentView.backgroundColor = [UIColor colorWithRed:0.2 green:0.2 blue:0.25 alpha:0.85];
+    alertContentView.layer.cornerRadius = 15;
+    
+    // Change text colors
+    NSMutableAttributedString *attributedTitle = [[NSMutableAttributedString alloc] initWithString:title ? title : @""];
+    [attributedTitle addAttribute:NSForegroundColorAttributeName
+                            value:[UIColor whiteColor]
+                            range:NSMakeRange(0, attributedTitle.length)];
+    [attributedTitle addAttribute:NSFontAttributeName
+                            value:[UIFont boldSystemFontOfSize:20]
+                            range:NSMakeRange(0, attributedTitle.length)];
+    
+    NSMutableAttributedString *attributedMessage = [[NSMutableAttributedString alloc] initWithString:message ? message : @""];
+    [attributedMessage addAttribute:NSForegroundColorAttributeName
+                              value:[UIColor whiteColor]
+                              range:NSMakeRange(0, attributedMessage.length)];
+    [attributedMessage addAttribute:NSFontAttributeName
+                              value:[UIFont systemFontOfSize:16]
+                              range:NSMakeRange(0, attributedMessage.length)];
+    
+    [alertController setValue:attributedTitle forKey:@"attributedTitle"];
+    [alertController setValue:attributedMessage forKey:@"attributedMessage"];
+    
+    return alertController;
+}
 
 - (int) showSelectDialog:(NSString *)msg {
-    UIAlertView *alert = [[UIAlertView alloc] initWithTitle:nil message:msg delegate:self cancelButtonTitle:cancelLabel otherButtonTitles:decideLabel, nil];
-    alert.tag = ++_id;
-    [alert show];
-    [alerts setObject:alert forKey:[NSNumber numberWithInt:_id]];
-    return _id;
+    return [self showSelectDialog:nil message:msg];
 }
 
 - (int) showSelectDialog:(NSString *)title message:(NSString*)msg {
-    UIAlertView *alert = [[UIAlertView alloc] initWithTitle:title message:msg delegate:self cancelButtonTitle:cancelLabel otherButtonTitles:decideLabel, nil];
-    alert.tag = ++_id;
-    [alert show];
-    [alerts setObject:alert forKey:[NSNumber numberWithInt:_id]];
+    ++_id;
+    
+    UIAlertController *alertController = [self createGameStyleAlert:title message:msg hasCancel:YES];
+    
+    // Create the actions with game-like styling
+    UIAlertAction *cancelAction = [UIAlertAction actionWithTitle:cancelLabel
+                                                           style:UIAlertActionStyleDefault
+                                                         handler:^(UIAlertAction * _Nonnull action) {
+        NSString *tag = [NSString stringWithFormat:@"%d", _id];
+        UnitySendMessage("DialogManager", "OnCancel", tag.UTF8String);
+        [alerts removeObjectForKey:@(_id)];
+    }];
+    
+    UIAlertAction *confirmAction = [UIAlertAction actionWithTitle:decideLabel
+                                                            style:UIAlertActionStyleDefault
+                                                          handler:^(UIAlertAction * _Nonnull action) {
+        NSString *tag = [NSString stringWithFormat:@"%d", _id];
+        UnitySendMessage("DialogManager", "OnSubmit", tag.UTF8String);
+        [alerts removeObjectForKey:@(_id)];
+    }];
+    
+    // Change text color of buttons to Clash Royale blue
+    [cancelAction setValue:[UIColor colorWithRed:0.231 green:0.533 blue:0.765 alpha:1.0] forKey:@"titleTextColor"];
+    [confirmAction setValue:[UIColor colorWithRed:0.231 green:0.533 blue:0.765 alpha:1.0] forKey:@"titleTextColor"];
+    
+    [alertController addAction:cancelAction];
+    [alertController addAction:confirmAction];
+    
+    // Present the controller
+    UIViewController *rootViewController = [UIApplication sharedApplication].keyWindow.rootViewController;
+    [rootViewController presentViewController:alertController animated:YES completion:nil];
+    
+    alerts[@(_id)] = alertController;
     return _id;
 }
 
 - (int) showSubmitDialog:(NSString *)msg {
-    UIAlertView *alert = [[UIAlertView alloc] initWithTitle:nil message:msg delegate:self cancelButtonTitle:nil otherButtonTitles:closeLabel, nil];
-    alert.tag = ++_id;
-    [alert show];
-    [alerts setObject:alert forKey:[NSNumber numberWithInt:_id]];
-    return _id;
+    return [self showSubmitDialog:nil message:msg];
 }
 
 - (int) showSubmitDialog:(NSString *)title message:(NSString*)msg {
-    UIAlertView *alert = [[UIAlertView alloc] initWithTitle:title message:msg delegate:self cancelButtonTitle:nil otherButtonTitles:closeLabel, nil];
-    alert.tag = ++_id;
-    [alert show];
-    [alerts setObject:alert forKey:[NSNumber numberWithInt:_id]];
+    ++_id;
+    
+    UIAlertController *alertController = [self createGameStyleAlert:title message:msg hasCancel:NO];
+    
+    // Create the action with game-like styling
+    UIAlertAction *closeAction = [UIAlertAction actionWithTitle:closeLabel
+                                                          style:UIAlertActionStyleDefault
+                                                        handler:^(UIAlertAction * _Nonnull action) {
+        NSString *tag = [NSString stringWithFormat:@"%d", _id];
+        UnitySendMessage("DialogManager", "OnSubmit", tag.UTF8String);
+        [alerts removeObjectForKey:@(_id)];
+    }];
+    
+    // Change text color of button to Clash Royale blue
+    [closeAction setValue:[UIColor colorWithRed:0.231 green:0.533 blue:0.765 alpha:1.0] forKey:@"titleTextColor"];
+    
+    [alertController addAction:closeAction];
+    
+    // Present the controller
+    UIViewController *rootViewController = [UIApplication sharedApplication].keyWindow.rootViewController;
+    [rootViewController presentViewController:alertController animated:YES completion:nil];
+    
+    alerts[@(_id)] = alertController;
     return _id;
 }
 
 - (void) dissmissDialog:(int)theID {
-    UIAlertView *alert = alerts[[NSNumber numberWithInt:theID]];
-    [alert dismissWithClickedButtonIndex:0 animated:YES];
-    [alerts removeObjectForKey:[NSNumber numberWithInt:theID]];
+    UIAlertController *alertController = alerts[@(theID)];
+    if (alertController) {
+        [alertController dismissViewControllerAnimated:YES completion:nil];
+        [alerts removeObjectForKey:@(theID)];
+    }
 }
 
 - (void) setLabelTitleWithDecide:(NSString*)decide cancel:(NSString*)cancel close:(NSString*) close {
-    decideLabel = [NSString stringWithString:decide];
-    cancelLabel = [NSString stringWithString:cancel];
-    closeLabel = [NSString stringWithString:close];
-}
-
-// delegate
-- (void)alertView:(UIAlertView*)alertView clickedButtonAtIndex:(NSInteger)buttonIndex
-{
-    NSString *tag = [NSString stringWithFormat:@"%d", alertView.tag];
-    
-    switch (buttonIndex) {
-        case 0:
-            if(alertView.cancelButtonIndex == 0) {
-                //NSLog(@"clicked cancel");
-                UnitySendMessage("DialogManager", "OnCancel", tag.UTF8String);
-            }
-            else {
-                //NSLog(@"clicked ok");
-                UnitySendMessage("DialogManager", "OnSubmit", tag.UTF8String);
-            }
-            break;
-        case 1:
-            if(alertView.cancelButtonIndex == 1) {
-                //NSLog(@"clicked cancel");
-                UnitySendMessage("DialogManager", "OnCancel", tag.UTF8String);
-            }
-            else {
-                //NSLog(@"clicked ok");
-                UnitySendMessage("DialogManager", "OnSubmit", tag.UTF8String);
-            }
-            break;
-        default:
-            break;
-    }
-    
-    [alerts removeObjectForKey:[NSNumber numberWithInteger:alertView.tag]];
+    decideLabel = [decide copy];
+    cancelLabel = [cancel copy];
+    closeLabel = [close copy];
 }
 
 @end
