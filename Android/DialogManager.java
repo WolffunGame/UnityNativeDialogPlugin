@@ -5,25 +5,22 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
+import android.util.Log;
 import android.util.SparseArray;
 import android.view.Gravity;
-import android.view.LayoutInflater;
 import android.view.View;
-import android.view.Window;
-import android.view.WindowManager;
+import android.view.ViewGroup.LayoutParams;
 import android.widget.Button;
-import android.widget.TextView;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
-import android.view.ViewGroup.LayoutParams;
-import android.util.Log;
 
 import com.unity3d.player.UnityPlayer;
 
 /**
  * @author koki ibukuro
- * Modified to match Clash Royale style
+ * Enhanced version with modern game-styled UI
  */
 public class DialogManager {
     private static DialogManager _instance;
@@ -34,6 +31,13 @@ public class DialogManager {
     private String decideLabel;
     private String cancelLabel;
     private String closeLabel;
+    
+    // Color constants
+    private static final String BACKGROUND_COLOR = "#2A2A35"; // Dark blue-gray background
+    private static final String BUTTON_COLOR = "#3B88C3";     // Bright blue for buttons
+    private static final String TITLE_COLOR = "#FFFFFF";      // White for title
+    private static final String MESSAGE_COLOR = "#E0E0E0";    // Light gray for message
+    private static final String DIVIDER_COLOR = "#444444";    // Dark gray for dividers
     
     /**
      * singleton class 
@@ -63,7 +67,6 @@ public class DialogManager {
         final int id = _id; 
         final Activity a = UnityPlayer.currentActivity;
         a.runOnUiThread(new Runnable() {
-            
             public void run() {
                 createGameStyleDialog(a, null, msg, id, true);
             }
@@ -82,7 +85,6 @@ public class DialogManager {
         final int id = _id;
         final Activity a = UnityPlayer.currentActivity;
         a.runOnUiThread(new Runnable() {
-            
             public void run() {
                 createGameStyleDialog(a, title, message, id, true);
             }
@@ -101,7 +103,6 @@ public class DialogManager {
         final int id = _id;
         final Activity a = UnityPlayer.currentActivity;
         a.runOnUiThread(new Runnable() {
-            
             public void run() {
                 createGameStyleDialog(a, null, msg, id, false);
             }
@@ -121,40 +122,12 @@ public class DialogManager {
         final int id = _id;
         final Activity a = UnityPlayer.currentActivity;
         a.runOnUiThread(new Runnable() {
-            
             public void run() {
                 createGameStyleDialog(a, title, msg, id, false);
             }
         });
         
         return id;
-    }
-    
-    private Button createGameButton(Activity activity, String text, boolean isPositive) {
-        // Create button with custom style
-        Button button = new Button(activity);
-        button.setText(text);
-        button.setTextColor(Color.parseColor("#3B88C3")); // Clash Royale blue
-        button.setTextSize(18);
-        button.setAllCaps(false);
-        button.setPadding(20, 15, 20, 15);
-        button.setTypeface(null, Typeface.BOLD);
-        
-        // Create background drawable for button
-        GradientDrawable buttonBackground = new GradientDrawable();
-        buttonBackground.setCornerRadius(8); // Rounded corners
-        
-        if (isPositive && text.equals("Try again")) {
-            // Special styling for "Try again" button
-            button.setTextColor(Color.WHITE);
-            buttonBackground.setColor(Color.parseColor("#3B88C3")); // Blue background
-        } else {
-            // Default transparent background
-            buttonBackground.setColor(Color.TRANSPARENT);
-        }
-        
-        button.setBackground(buttonBackground);
-        return button;
     }
     
     private void createGameStyleDialog(Activity activity, String title, String message, final int id, boolean showCancel) {
@@ -164,22 +137,22 @@ public class DialogManager {
         // Create a custom view for the dialog
         LinearLayout dialogLayout = new LinearLayout(activity);
         dialogLayout.setOrientation(LinearLayout.VERTICAL);
-        dialogLayout.setPadding(30, 30, 30, 20); // Less padding at bottom
+        dialogLayout.setPadding(50, 40, 50, 30);
         
-        // Set rounded corners for dialog background
-        GradientDrawable dialogBackground = new GradientDrawable();
-        dialogBackground.setCornerRadius(15); // Rounded corners
-        dialogBackground.setColor(Color.parseColor("#463C33")); // Dark brown background
-        dialogLayout.setBackground(dialogBackground);
+        // Create a background drawable with rounded corners
+        GradientDrawable backgroundDrawable = new GradientDrawable();
+        backgroundDrawable.setColor(Color.parseColor(BACKGROUND_COLOR));
+        backgroundDrawable.setCornerRadius(20);
+        dialogLayout.setBackground(backgroundDrawable);
         
         // Create title text view if title exists
         if (title != null && !title.isEmpty()) {
             TextView titleView = new TextView(activity);
             titleView.setText(title);
-            titleView.setTextColor(Color.WHITE);
+            titleView.setTextColor(Color.parseColor(TITLE_COLOR));
             titleView.setTextSize(20);
             titleView.setGravity(Gravity.CENTER);
-            titleView.setPadding(0, 0, 0, 10);
+            titleView.setPadding(0, 0, 0, 30);
             titleView.setTypeface(null, Typeface.BOLD);
             dialogLayout.addView(titleView);
         }
@@ -187,33 +160,26 @@ public class DialogManager {
         // Create message text view
         TextView messageView = new TextView(activity);
         messageView.setText(message);
-        messageView.setTextColor(Color.WHITE);
+        messageView.setTextColor(Color.parseColor(MESSAGE_COLOR));
         messageView.setTextSize(16);
         messageView.setGravity(Gravity.CENTER);
-        messageView.setPadding(20, 10, 20, 30);
+        messageView.setPadding(0, 10, 0, 40);
         dialogLayout.addView(messageView);
         
         // Add divider
         View divider = new View(activity);
-        divider.setBackgroundColor(Color.parseColor("#333333"));
+        divider.setBackgroundColor(Color.parseColor(DIVIDER_COLOR));
         LinearLayout.LayoutParams dividerParams = new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, 1);
+        dividerParams.setMargins(0, 0, 0, 20);
         dialogLayout.addView(divider, dividerParams);
         
         // Create button layout
         LinearLayout buttonLayout = new LinearLayout(activity);
-        buttonLayout.setOrientation(LinearLayout.VERTICAL);
+        buttonLayout.setOrientation(LinearLayout.HORIZONTAL);
         buttonLayout.setGravity(Gravity.CENTER);
-        buttonLayout.setPadding(0, 0, 0, 0);
         
-        // Special handling for "Try again" button
-        boolean isTryAgainDialog = !showCancel && closeLabel.equals("Try again");
-        
-        // Create Try Again/OK button (positive button)
-        Button positiveButton = createGameButton(activity, 
-                                                showCancel ? decideLabel : closeLabel, 
-                                                true);
-        
-        // Adding click listener for the button
+        // Create styled button function
+        Button positiveButton = createStyledButton(activity, showCancel ? decideLabel : closeLabel);
         positiveButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -231,33 +197,33 @@ public class DialogManager {
         });
         
         if (showCancel) {
-            // For two buttons layout (horizontal)
-            buttonLayout.setOrientation(LinearLayout.HORIZONTAL);
-            
-            Button negativeButton = createGameButton(activity, cancelLabel, false);
-            
+            Button negativeButton = createStyledButton(activity, cancelLabel);
             negativeButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    UnityPlayer.UnitySendMessage("DialogManager", "OnCancel", String.valueOf(id));
-                    _dialogs.delete(id);
-                    _dialogs.get(id).dismiss();
+                    try {
+                        AlertDialog dialog = _dialogs.get(id);
+                        if (dialog != null) {
+                            UnityPlayer.UnitySendMessage("DialogManager", "OnCancel", String.valueOf(id));
+                            _dialogs.delete(id);
+                            dialog.dismiss();
+                        }
+                    } catch (Exception e) {
+                        Log.e("DialogManager", "Error in onClick: " + e.getMessage());
+                    }
                 }
             });
             
             // For two buttons layout
             LinearLayout.LayoutParams buttonParams = new LinearLayout.LayoutParams(0, LayoutParams.WRAP_CONTENT);
             buttonParams.weight = 1;
+            buttonParams.setMargins(10, 0, 10, 0);
             
             buttonLayout.addView(negativeButton, buttonParams);
             buttonLayout.addView(positiveButton, buttonParams);
         } else {
-            // For single button layout (like the "Try again" button in the image)
-            LinearLayout.LayoutParams buttonParams = new LinearLayout.LayoutParams(
-                LayoutParams.MATCH_PARENT, 
-                LayoutParams.WRAP_CONTENT
-            );
-            buttonParams.setMargins(20, 10, 20, 10);
+            // For single button layout
+            LinearLayout.LayoutParams buttonParams = new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT);
             buttonLayout.addView(positiveButton, buttonParams);
         }
         
@@ -271,6 +237,17 @@ public class DialogManager {
         dialog.show();
         
         _dialogs.put(Integer.valueOf(id), dialog);
+    }
+    
+    private Button createStyledButton(Activity activity, String text) {
+        Button button = new Button(activity);
+        button.setText(text);
+        button.setTextColor(Color.parseColor(BUTTON_COLOR));
+        button.setBackgroundColor(Color.TRANSPARENT);
+        button.setTextSize(16);
+        button.setAllCaps(false);
+        button.setTypeface(null, Typeface.BOLD);
+        return button;
     }
     
     public void dissmissDialog(int id) {
@@ -311,9 +288,5 @@ public class DialogManager {
     
     public static void SetLabel(String decide, String cancel, String close) {
         DialogManager.getInstance().setLabel(decide, cancel, close);
-    }
-    
-    private void log(String msg) {
-        //Log.d("DialogsManager", msg);
     }
 }

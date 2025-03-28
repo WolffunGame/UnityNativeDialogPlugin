@@ -14,86 +14,36 @@ extern void UnitySendMessage(const char *, const char *, const char *);
 
 extern "C" {
     int _showSelectDialog(const char *msg) {
-        @try {
-            if (msg == NULL) {
-                NSLog(@"Error: message is NULL in _showSelectDialog");
-                return -1;
-            }
-            return [[UNDialogManager sharedManager]
-                    showSelectDialog:[NSString stringWithUTF8String:msg]];
-        } @catch (NSException *exception) {
-            NSLog(@"Exception in _showSelectDialog: %@", exception.reason);
-            return -1;
-        }
+        return [[UNDialogManager sharedManager]
+                showSelectDialog:[NSString stringWithUTF8String:msg]];
     }
     
     int _showSelectTitleDialog(const char *title, const char *msg) {
-        @try {
-            if (msg == NULL) {
-                NSLog(@"Error: message is NULL in _showSelectTitleDialog");
-                return -1;
-            }
-            NSString *titleStr = (title != NULL) ? [NSString stringWithUTF8String:title] : nil;
-            return [[UNDialogManager sharedManager]
-                    showSelectDialog:titleStr
-                    message:[NSString stringWithUTF8String:msg]];
-        } @catch (NSException *exception) {
-            NSLog(@"Exception in _showSelectTitleDialog: %@", exception.reason);
-            return -1;
-        }
+        return [[UNDialogManager sharedManager]
+                showSelectDialog:[NSString stringWithUTF8String:title]
+                message:[NSString stringWithUTF8String:msg]];
     }
     
     int _showSubmitDialog(const char *msg) {
-        @try {
-            if (msg == NULL) {
-                NSLog(@"Error: message is NULL in _showSubmitDialog");
-                return -1;
-            }
-            return [[UNDialogManager sharedManager]
-                    showSubmitDialog:[NSString stringWithUTF8String:msg]];
-        } @catch (NSException *exception) {
-            NSLog(@"Exception in _showSubmitDialog: %@", exception.reason);
-            return -1;
-        }
+        return [[UNDialogManager sharedManager]
+                showSubmitDialog:[NSString stringWithUTF8String:msg]];
     }
     
     int _showSubmitTitleDialog(const char *title, const char *msg) {
-        @try {
-            if (msg == NULL) {
-                NSLog(@"Error: message is NULL in _showSubmitTitleDialog");
-                return -1;
-            }
-            NSString *titleStr = (title != NULL) ? [NSString stringWithUTF8String:title] : nil;
-            return [[UNDialogManager sharedManager]
-                    showSubmitDialog:titleStr
-                    message:[NSString stringWithUTF8String:msg]];
-        } @catch (NSException *exception) {
-            NSLog(@"Exception in _showSubmitTitleDialog: %@", exception.reason);
-            return -1;
-        }
+        return [[UNDialogManager sharedManager]
+                showSubmitDialog:[NSString stringWithUTF8String:title]
+                message:[NSString stringWithUTF8String:msg]];
     }
     
     void _dissmissDialog(const int theID){
-        @try {
-            [[UNDialogManager sharedManager] dissmissDialog:theID];
-        } @catch (NSException *exception) {
-            NSLog(@"Exception in _dissmissDialog: %@", exception.reason);
-        }
+        [[UNDialogManager sharedManager] dissmissDialog:theID];
     }
 
     void _setLabel(const char *decide, const char *cancel, const char *close) {
-        @try {
-            NSString *decideStr = (decide != NULL) ? [NSString stringWithUTF8String:decide] : @"YES";
-            NSString *cancelStr = (cancel != NULL) ? [NSString stringWithUTF8String:cancel] : @"NO";
-            NSString *closeStr = (close != NULL) ? [NSString stringWithUTF8String:close] : @"CLOSE";
-            
-            [[UNDialogManager sharedManager] 
-                setLabelTitleWithDecide:decideStr
-                                 cancel:cancelStr
-                                  close:closeStr];
-        } @catch (NSException *exception) {
-            NSLog(@"Exception in _setLabel: %@", exception.reason);
-        }
+        [[UNDialogManager sharedManager] 
+            setLabelTitleWithDecide:[NSString stringWithUTF8String:decide]
+                             cancel:[NSString stringWithUTF8String:cancel]
+                              close:[NSString stringWithUTF8String:close]];
     }
 }
 
@@ -103,10 +53,23 @@ extern "C" {
 
 static UNDialogManager * shardDialogManager;
 
+// Color constants
+static UIColor *const kBackgroundColor = nil;
+static UIColor *const kButtonColor = nil;
+static UIColor *const kTextColor = nil;
+
++ (void)initialize {
+    if (self == [UNDialogManager class]) {
+        kBackgroundColor = [UIColor colorWithRed:0.2 green:0.2 blue:0.25 alpha:0.95];
+        kButtonColor = [UIColor colorWithRed:0.231 green:0.533 blue:0.765 alpha:1.0]; // Clash Royale blue
+        kTextColor = [UIColor whiteColor];
+    }
+}
+
 + (UNDialogManager*) sharedManager {
     @synchronized(self) {
         if(shardDialogManager == nil) {
-            shardDialogManager = [[self alloc]init];
+            shardDialogManager = [[self alloc] init];
         }
     }
     return shardDialogManager;
@@ -125,45 +88,65 @@ static UNDialogManager * shardDialogManager;
 
 // Create custom styled game-like alerts for iOS
 - (UIAlertController *)createGameStyleAlert:(NSString *)title message:(NSString *)message hasCancel:(BOOL)hasCancel {
-    @try {
-        UIAlertController *alertController = [UIAlertController alertControllerWithTitle:title
-                                                                                 message:message
-                                                                          preferredStyle:UIAlertControllerStyleAlert];
-        
-        // Customize alert appearance
-        UIView *firstSubview = alertController.view.subviews.firstObject;
-        UIView *alertContentView = firstSubview.subviews.firstObject;
-        alertContentView.backgroundColor = [UIColor colorWithRed:0.2 green:0.2 blue:0.25 alpha:0.85];
-        alertContentView.layer.cornerRadius = 15;
-        
-        // Change text colors
-        if (title) {
-            NSMutableAttributedString *attributedTitle = [[NSMutableAttributedString alloc] initWithString:title];
-            [attributedTitle addAttribute:NSForegroundColorAttributeName
-                                    value:[UIColor whiteColor]
-                                    range:NSMakeRange(0, attributedTitle.length)];
-            [attributedTitle addAttribute:NSFontAttributeName
-                                    value:[UIFont boldSystemFontOfSize:20]
-                                    range:NSMakeRange(0, attributedTitle.length)];
-            [alertController setValue:attributedTitle forKey:@"attributedTitle"];
-        }
-        
-        if (message) {
-            NSMutableAttributedString *attributedMessage = [[NSMutableAttributedString alloc] initWithString:message];
-            [attributedMessage addAttribute:NSForegroundColorAttributeName
-                                      value:[UIColor whiteColor]
-                                      range:NSMakeRange(0, attributedMessage.length)];
-            [attributedMessage addAttribute:NSFontAttributeName
-                                      value:[UIFont systemFontOfSize:16]
-                                      range:NSMakeRange(0, attributedMessage.length)];
-            [alertController setValue:attributedMessage forKey:@"attributedMessage"];
-        }
-        
-        return alertController;
-    } @catch (NSException *exception) {
-        NSLog(@"Exception in createGameStyleAlert: %@", exception.reason);
-        return nil;
+    UIAlertController *alertController = [UIAlertController alertControllerWithTitle:title
+                                                                             message:message
+                                                                      preferredStyle:UIAlertControllerStyleAlert];
+    
+    // Customize alert appearance - iOS 13+ way of styling
+    // This works by applying a custom view controller presentation style
+    if (@available(iOS 13.0, *)) {
+        alertController.overrideUserInterfaceStyle = UIUserInterfaceStyleDark;
     }
+    
+    // Set up appearance
+    UIView *firstSubview = alertController.view.subviews.firstObject;
+    UIView *alertContentView = firstSubview.subviews.firstObject;
+    alertContentView.backgroundColor = kBackgroundColor;
+    alertContentView.layer.cornerRadius = 15;
+    alertContentView.layer.masksToBounds = YES;
+    
+    // Add border to make it stand out
+    alertContentView.layer.borderWidth = 1.5;
+    alertContentView.layer.borderColor = [UIColor colorWithWhite:0.3 alpha:0.8].CGColor;
+    
+    // Add subtle shadow
+    alertController.view.layer.shadowColor = [UIColor blackColor].CGColor;
+    alertController.view.layer.shadowOffset = CGSizeMake(0, 4);
+    alertController.view.layer.shadowRadius = 10;
+    alertController.view.layer.shadowOpacity = 0.3;
+    
+    // Change text colors
+    NSMutableAttributedString *attributedTitle = nil;
+    if (title && title.length > 0) {
+        attributedTitle = [[NSMutableAttributedString alloc] initWithString:title];
+        [attributedTitle addAttribute:NSForegroundColorAttributeName
+                                value:kTextColor
+                                range:NSMakeRange(0, attributedTitle.length)];
+        [attributedTitle addAttribute:NSFontAttributeName
+                                value:[UIFont boldSystemFontOfSize:20]
+                                range:NSMakeRange(0, attributedTitle.length)];
+    }
+    
+    NSMutableAttributedString *attributedMessage = nil;
+    if (message && message.length > 0) {
+        attributedMessage = [[NSMutableAttributedString alloc] initWithString:message];
+        [attributedMessage addAttribute:NSForegroundColorAttributeName
+                                  value:kTextColor
+                                  range:NSMakeRange(0, attributedMessage.length)];
+        [attributedMessage addAttribute:NSFontAttributeName
+                                  value:[UIFont systemFontOfSize:16]
+                                  range:NSMakeRange(0, attributedMessage.length)];
+    }
+    
+    if (attributedTitle) {
+        [alertController setValue:attributedTitle forKey:@"attributedTitle"];
+    }
+    
+    if (attributedMessage) {
+        [alertController setValue:attributedMessage forKey:@"attributedMessage"];
+    }
+    
+    return alertController;
 }
 
 - (int) showSelectDialog:(NSString *)msg {
@@ -171,70 +154,57 @@ static UNDialogManager * shardDialogManager;
 }
 
 - (int) showSelectDialog:(NSString *)title message:(NSString*)msg {
-    @try {
-        ++_id;
-        
-        __block int currentID = _id;
-        
-        dispatch_async(dispatch_get_main_queue(), ^{
-            @try {
-                UIAlertController *alertController = [self createGameStyleAlert:title message:msg hasCancel:YES];
-                if (!alertController) {
-                    NSLog(@"Failed to create alert controller");
-                    return;
-                }
-                
-                // Create the actions with game-like styling
-                UIAlertAction *cancelAction = [UIAlertAction actionWithTitle:self->cancelLabel
-                                                                       style:UIAlertActionStyleDefault
-                                                                     handler:^(UIAlertAction * _Nonnull action) {
-                    @try {
-                        NSString *tag = [NSString stringWithFormat:@"%d", currentID];
-                        UnitySendMessage("DialogManager", "OnCancel", tag.UTF8String);
-                        [self->alerts removeObjectForKey:@(currentID)];
-                    } @catch (NSException *exception) {
-                        NSLog(@"Exception in cancel button handler: %@", exception.reason);
-                    }
-                }];
-                
-                UIAlertAction *confirmAction = [UIAlertAction actionWithTitle:self->decideLabel
-                                                                        style:UIAlertActionStyleDefault
-                                                                      handler:^(UIAlertAction * _Nonnull action) {
-                    @try {
-                        NSString *tag = [NSString stringWithFormat:@"%d", currentID];
-                        UnitySendMessage("DialogManager", "OnSubmit", tag.UTF8String);
-                        [self->alerts removeObjectForKey:@(currentID)];
-                    } @catch (NSException *exception) {
-                        NSLog(@"Exception in confirm button handler: %@", exception.reason);
-                    }
-                }];
-                
-                // Change text color of buttons to Clash Royale blue
-                [cancelAction setValue:[UIColor colorWithRed:0.231 green:0.533 blue:0.765 alpha:1.0] forKey:@"titleTextColor"];
-                [confirmAction setValue:[UIColor colorWithRed:0.231 green:0.533 blue:0.765 alpha:1.0] forKey:@"titleTextColor"];
-                
-                [alertController addAction:cancelAction];
-                [alertController addAction:confirmAction];
-                
-                // Present the controller
-                UIViewController *rootViewController = [UIApplication sharedApplication].keyWindow.rootViewController;
-                if (!rootViewController) {
-                    NSLog(@"No root view controller found");
-                    return;
-                }
-                
-                [rootViewController presentViewController:alertController animated:YES completion:nil];
-                self->alerts[@(currentID)] = alertController;
-            } @catch (NSException *exception) {
-                NSLog(@"Exception in showSelectDialog UI thread: %@", exception.reason);
-            }
-        });
-        
-        return _id;
-    } @catch (NSException *exception) {
-        NSLog(@"Exception in showSelectDialog: %@", exception.reason);
-        return -1;
-    }
+    ++_id;
+    
+    UIAlertController *alertController = [self createGameStyleAlert:title message:msg hasCancel:YES];
+    
+    // Add visual separator between buttons and message
+    UIView *separatorView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, alertController.view.bounds.size.width, 1)];
+    separatorView.backgroundColor = [UIColor colorWithWhite:0.3 alpha:0.5];
+    [alertController.view addSubview:separatorView];
+    
+    // Create the actions with game-like styling
+    UIAlertAction *cancelAction = [UIAlertAction actionWithTitle:cancelLabel
+                                                           style:UIAlertActionStyleDefault
+                                                         handler:^(UIAlertAction * _Nonnull action) {
+        @try {
+            NSString *tag = [NSString stringWithFormat:@"%d", _id];
+            UnitySendMessage("DialogManager", "OnCancel", tag.UTF8String);
+            [alerts removeObjectForKey:@(_id)];
+        } @catch (NSException *exception) {
+            NSLog(@"Exception in dialog cancel: %@", exception.reason);
+        }
+    }];
+    
+    UIAlertAction *confirmAction = [UIAlertAction actionWithTitle:decideLabel
+                                                            style:UIAlertActionStyleDefault
+                                                          handler:^(UIAlertAction * _Nonnull action) {
+        @try {
+            NSString *tag = [NSString stringWithFormat:@"%d", _id];
+            UnitySendMessage("DialogManager", "OnSubmit", tag.UTF8String);
+            [alerts removeObjectForKey:@(_id)];
+        } @catch (NSException *exception) {
+            NSLog(@"Exception in dialog confirm: %@", exception.reason);
+        }
+    }];
+    
+    // Change text color of buttons to Clash Royale blue
+    [cancelAction setValue:kButtonColor forKey:@"titleTextColor"];
+    [confirmAction setValue:kButtonColor forKey:@"titleTextColor"];
+    
+    // Bold the text on buttons
+    [cancelAction setValue:[UIFont boldSystemFontOfSize:17] forKey:@"titleTextFont"];
+    [confirmAction setValue:[UIFont boldSystemFontOfSize:17] forKey:@"titleTextFont"];
+    
+    [alertController addAction:cancelAction];
+    [alertController addAction:confirmAction];
+    
+    // Present the controller
+    UIViewController *rootViewController = [UIApplication sharedApplication].keyWindow.rootViewController;
+    [rootViewController presentViewController:alertController animated:YES completion:nil];
+    
+    alerts[@(_id)] = alertController;
+    return _id;
 }
 
 - (int) showSubmitDialog:(NSString *)msg {
@@ -242,90 +212,68 @@ static UNDialogManager * shardDialogManager;
 }
 
 - (int) showSubmitDialog:(NSString *)title message:(NSString*)msg {
-    @try {
-        ++_id;
-        
-        __block int currentID = _id;
-        
-        dispatch_async(dispatch_get_main_queue(), ^{
-            @try {
-                UIAlertController *alertController = [self createGameStyleAlert:title message:msg hasCancel:NO];
-                if (!alertController) {
-                    NSLog(@"Failed to create alert controller");
-                    return;
-                }
-                
-                // Create action button
-                UIAlertAction *closeAction = [UIAlertAction actionWithTitle:self->closeLabel
-                                                                      style:UIAlertActionStyleDefault
-                                                                    handler:^(UIAlertAction * _Nonnull action) {
-                    @try {
-                        NSString *tag = [NSString stringWithFormat:@"%d", currentID];
-                        UnitySendMessage("DialogManager", "OnSubmit", tag.UTF8String);
-                        [self->alerts removeObjectForKey:@(currentID)];
-                    } @catch (NSException *exception) {
-                        NSLog(@"Exception in close button handler: %@", exception.reason);
-                    }
-                }];
-                
-                // Change text color of button to Clash Royale blue
-                [closeAction setValue:[UIColor colorWithRed:0.231 green:0.533 blue:0.765 alpha:1.0] forKey:@"titleTextColor"];
-                
-                [alertController addAction:closeAction];
-                
-                // Present the controller
-                UIViewController *rootViewController = [UIApplication sharedApplication].keyWindow.rootViewController;
-                if (!rootViewController) {
-                    NSLog(@"No root view controller found");
-                    return;
-                }
-                
-                [rootViewController presentViewController:alertController animated:YES completion:nil];
-                self->alerts[@(currentID)] = alertController;
-            } @catch (NSException *exception) {
-                NSLog(@"Exception in showSubmitDialog UI thread: %@", exception.reason);
-            }
-        });
-        
-        return _id;
-    } @catch (NSException *exception) {
-        NSLog(@"Exception in showSubmitDialog: %@", exception.reason);
-        return -1;
+    ++_id;
+    
+    UIAlertController *alertController = [self createGameStyleAlert:title message:msg hasCancel:NO];
+    
+    // Add visual separator between buttons and message
+    UIView *separatorView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, alertController.view.bounds.size.width, 1)];
+    separatorView.backgroundColor = [UIColor colorWithWhite:0.3 alpha:0.5];
+    [alertController.view addSubview:separatorView];
+    
+    // Create the action with game-like styling
+    UIAlertAction *closeAction = [UIAlertAction actionWithTitle:closeLabel
+                                                        style:UIAlertActionStyleDefault
+                                                      handler:^(UIAlertAction * _Nonnull action) {
+        @try {
+            NSString *tag = [NSString stringWithFormat:@"%d", _id];
+            UnitySendMessage("DialogManager", "OnSubmit", tag.UTF8String);
+            [alerts removeObjectForKey:@(_id)];
+        } @catch (NSException *exception) {
+            NSLog(@"Exception in dialog action: %@", exception.reason);
+        }
+    }];
+    
+    // Change text color of button to Clash Royale blue
+    [closeAction setValue:kButtonColor forKey:@"titleTextColor"];
+    
+    // Bold the text on button
+    [closeAction setValue:[UIFont boldSystemFontOfSize:17] forKey:@"titleTextFont"];
+    
+    [alertController addAction:closeAction];
+    
+    // Center the action button
+    if (@available(iOS 9.0, *)) {
+        alertController.preferredAction = closeAction;
     }
+    
+    // Present the controller with animation
+    UIViewController *rootViewController = [UIApplication sharedApplication].keyWindow.rootViewController;
+    
+    // Add a subtle animation
+    alertController.view.alpha = 0.0;
+    [rootViewController presentViewController:alertController animated:NO completion:^{
+        [UIView animateWithDuration:0.3 animations:^{
+            alertController.view.alpha = 1.0;
+        }];
+    }];
+    
+    alerts[@(_id)] = alertController;
+    return _id;
 }
 
 - (void) dissmissDialog:(int)theID {
-    @try {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            @try {
-                UIAlertController *alertController = self->alerts[@(theID)];
-                if (alertController) {
-                    [alertController dismissViewControllerAnimated:YES completion:nil];
-                    [self->alerts removeObjectForKey:@(theID)];
-                }
-            } @catch (NSException *exception) {
-                NSLog(@"Exception in dissmissDialog UI thread: %@", exception.reason);
-            }
-        });
-    } @catch (NSException *exception) {
-        NSLog(@"Exception in dissmissDialog: %@", exception.reason);
+    UIAlertController *alertController = alerts[@(theID)];
+    if (alertController) {
+        [alertController dismissViewControllerAnimated:YES completion:nil];
+        [alerts removeObjectForKey:@(theID)];
     }
 }
 
 - (void) setLabelTitleWithDecide:(NSString*)decide cancel:(NSString*)cancel close:(NSString*) close {
-    @try {
-        if (decide) {
-            decideLabel = [decide copy];
-        }
-        if (cancel) {
-            cancelLabel = [cancel copy];
-        }
-        if (close) {
-            closeLabel = [close copy];
-        }
-    } @catch (NSException *exception) {
-        NSLog(@"Exception in setLabelTitleWithDecide: %@", exception.reason);
-    }
+    decideLabel = [decide copy];
+    cancelLabel = [cancel copy];
+    closeLabel = [close copy];
 }
 
 @end
