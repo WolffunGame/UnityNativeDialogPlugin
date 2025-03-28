@@ -30,9 +30,16 @@ namespace NativeDialog
             return _showSubmitDialog(message);
         }
 
+        // In DialogIOS.cs
         public int ShowSubmit(string title, string message)
         {
-            return _showSubmitTitleDialog(title, message);
+            int id = _showSubmitTitleDialog(title, message);
+            if (id < 0)
+            {
+                Debug.LogError("Failed to show dialog on iOS");
+                // Handle the error case appropriately
+            }
+            return id;
         }
 
         public void Dissmiss(int id)
