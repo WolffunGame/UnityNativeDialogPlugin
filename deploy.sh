@@ -34,7 +34,7 @@ done
 [ -z "$SEMVER" ] && echo "You must provide the --semver option." && exit 1
 
 PREFIX="Packages/com.github.asus4.nativedialog"
-BRANCH="upm"
+BRANCH="upm2"
 
 git subtree split --prefix="$PREFIX" --branch $BRANCH
 git tag $SEMVER $BRANCH
