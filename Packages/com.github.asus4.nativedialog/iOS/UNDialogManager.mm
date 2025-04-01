@@ -130,16 +130,17 @@ static UNDialogManager * shardDialogManager;
 // Create a custom view for Clash Royale style dialog
 - (UIView *)createClashRoyaleStyleDialogWithTitle:(NSString *)title message:(NSString *)message buttonText:(NSString *)buttonText {
     @try {
-        CGFloat dialogWidth = 280.0;
-        CGFloat topPadding = 25.0;
+        CGFloat dialogWidth = 300.0;  // Increased width for better look
+        CGFloat topPadding = 28.0;    // Increased top padding
         CGFloat sidePadding = 20.0;
-        CGFloat titleFontSize = 22.0;
-        CGFloat messageFontSize = 16.0;
-        CGFloat buttonHeight = 50.0;
-        CGFloat cornerRadius = 8.0;
+        CGFloat titleFontSize = 24.0;  // Larger title font
+        CGFloat messageFontSize = 15.0; // Slightly smaller message font
+        CGFloat buttonHeight = 52.0;   // Taller button
+        CGFloat cornerRadius = 12.0;   // More rounded corners
+        CGFloat dialogMinHeight = 200.0; // Minimum height for the dialog
         
         // Create the main container
-        UIView *containerView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, dialogWidth, 10)]; // Height will be adjusted
+        UIView *containerView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, dialogWidth, dialogMinHeight)];
         containerView.backgroundColor = CR_BACKGROUND_COLOR;
         containerView.layer.cornerRadius = cornerRadius;
         containerView.clipsToBounds = YES;
@@ -150,7 +151,7 @@ static UNDialogManager * shardDialogManager;
         
         // Add the title
         if (title && title.length > 0) {
-            UILabel *titleLabel = [[UILabel alloc] initWithFrame:CGRectMake(sidePadding, currentY, dialogWidth - (sidePadding * 2), 30)];
+            UILabel *titleLabel = [[UILabel alloc] initWithFrame:CGRectMake(sidePadding, currentY, dialogWidth - (sidePadding * 2), 35)];
             titleLabel.text = title;
             titleLabel.textColor = CR_TITLE_COLOR;
             titleLabel.font = [UIFont boldSystemFontOfSize:titleFontSize];
@@ -163,29 +164,39 @@ static UNDialogManager * shardDialogManager;
                                         titleLabel.frame.size.width,
                                         titleLabel.frame.size.height);
             
-            currentY = CGRectGetMaxY(titleLabel.frame) + 12;
+            currentY = CGRectGetMaxY(titleLabel.frame) + 16; // More space after title
         }
         
         // Add the message
         if (message && message.length > 0) {
+            // Use attributed string for line height adjustment
+            NSMutableParagraphStyle *paragraphStyle = [[NSMutableParagraphStyle alloc] init];
+            paragraphStyle.lineSpacing = 4.0; // Add space between lines
+            paragraphStyle.alignment = NSTextAlignmentCenter;
+            
+            NSDictionary *attributes = @{
+                NSFontAttributeName: [UIFont systemFontOfSize:messageFontSize],
+                NSForegroundColorAttributeName: CR_MESSAGE_COLOR,
+                NSParagraphStyleAttributeName: paragraphStyle
+            };
+            
+            NSAttributedString *attributedMessage = [[NSAttributedString alloc] initWithString:message attributes:attributes];
+            
             UILabel *messageLabel = [[UILabel alloc] initWithFrame:CGRectMake(sidePadding, currentY, dialogWidth - (sidePadding * 2), 20)];
-            messageLabel.text = message;
-            messageLabel.textColor = CR_MESSAGE_COLOR;
-            messageLabel.font = [UIFont systemFontOfSize:messageFontSize];
+            messageLabel.attributedText = attributedMessage;
             messageLabel.textAlignment = NSTextAlignmentCenter;
             messageLabel.numberOfLines = 0;
             messageLabel.lineBreakMode = NSLineBreakByWordWrapping;
             [containerView addSubview:messageLabel];
             
             CGSize maxSize = CGSizeMake(dialogWidth - (sidePadding * 2), 200);
-            CGRect textRect = [message boundingRectWithSize:maxSize
-                                                   options:NSStringDrawingUsesLineFragmentOrigin
-                                                attributes:@{NSFontAttributeName: messageLabel.font}
-                                                   context:nil];
+            CGRect textRect = [attributedMessage boundingRectWithSize:maxSize
+                                                    options:NSStringDrawingUsesLineFragmentOrigin
+                                                    context:nil];
             
-            messageLabel.frame = CGRectMake(sidePadding, currentY, dialogWidth - (sidePadding * 2), textRect.size.height);
+            messageLabel.frame = CGRectMake(sidePadding, currentY, dialogWidth - (sidePadding * 2), ceilf(textRect.size.height));
             
-            currentY = CGRectGetMaxY(messageLabel.frame) + 20;
+            currentY = CGRectGetMaxY(messageLabel.frame) + 24; // More space after message
         }
         
         // Add separator line
@@ -201,15 +212,27 @@ static UNDialogManager * shardDialogManager;
         [actionButton setTitle:buttonText forState:UIControlStateNormal];
         [actionButton setTitleColor:CR_BUTTON_TEXT_COLOR forState:UIControlStateNormal];
         [actionButton setTitleColor:[CR_BUTTON_TEXT_COLOR colorWithAlphaComponent:0.7] forState:UIControlStateHighlighted];
-        actionButton.titleLabel.font = [UIFont boldSystemFontOfSize:17.0];
+        actionButton.titleLabel.font = [UIFont boldSystemFontOfSize:18.0]; // Larger button font
         actionButton.tag = 1;  // Tag for identifying the button in action
+        
+        // Add ripple effect when touching the button
+        UIView *highlightView = [[UIView alloc] initWithFrame:actionButton.bounds];
+        highlightView.backgroundColor = [UIColor colorWithWhite:1.0 alpha:0.1];
+        highlightView.alpha = 0.0;
+        highlightView.tag = 2;
+        [actionButton addSubview:highlightView];
+        
+        // Add touch events for highlight effect
+        [actionButton addTarget:self action:@selector(buttonTouchDown:) forControlEvents:UIControlEventTouchDown];
+        [actionButton addTarget:self action:@selector(buttonTouchUp:) forControlEvents:UIControlEventTouchUpInside | UIControlEventTouchUpOutside | UIControlEventTouchCancel];
+        
         [containerView addSubview:actionButton];
         
         currentY += buttonHeight;
         
-        // Adjust container height
+        // Adjust container height (ensure minimum height)
         CGRect frame = containerView.frame;
-        frame.size.height = currentY;
+        frame.size.height = MAX(currentY, dialogMinHeight);
         containerView.frame = frame;
         
         return containerView;
@@ -219,12 +242,39 @@ static UNDialogManager * shardDialogManager;
     }
 }
 
+// Button touch down effect
+- (void)buttonTouchDown:(UIButton *)sender {
+    UIView *highlightView = [sender viewWithTag:2];
+    if (highlightView) {
+        [UIView animateWithDuration:0.1 animations:^{
+            highlightView.alpha = 1.0;
+        }];
+    }
+}
+
+// Button touch up effect
+- (void)buttonTouchUp:(UIButton *)sender {
+    UIView *highlightView = [sender viewWithTag:2];
+    if (highlightView) {
+        [UIView animateWithDuration:0.2 animations:^{
+            highlightView.alpha = 0.0;
+        }];
+    }
+}
+
 // Helper to present a custom dialog
 - (void)presentClashRoyaleDialog:(UIView *)dialogView withID:(int)dialogID {
     @try {
         // Create a transparent overlay
         UIView *overlayView = [[UIView alloc] initWithFrame:[UIScreen mainScreen].bounds];
         overlayView.backgroundColor = [UIColor colorWithWhite:0 alpha:0.7];
+        overlayView.tag = dialogID; // Store the dialog ID in the view tag
+        
+        // Add subtle shadow to dialog
+        dialogView.layer.shadowColor = [UIColor blackColor].CGColor;
+        dialogView.layer.shadowOffset = CGSizeMake(0, 3);
+        dialogView.layer.shadowOpacity = 0.3;
+        dialogView.layer.shadowRadius = 10;
         
         // Center the dialog
         dialogView.center = CGPointMake(CGRectGetMidX(overlayView.bounds), CGRectGetMidY(overlayView.bounds));
@@ -238,16 +288,34 @@ static UNDialogManager * shardDialogManager;
         
         // Find the button and add tap action
         UIButton *actionButton = [dialogView viewWithTag:1];
+        
+        // Use a weak reference to self to avoid retain cycle
         __weak UNDialogManager *weakSelf = self;
+        __block int blockDialogID = dialogID;
+        
+        // Add tap action to the button
         [actionButton addTarget:self action:@selector(dialogButtonTapped:) forControlEvents:UIControlEventTouchUpInside];
         
+        // Store the dialog ID in the button's layer
+        objc_setAssociatedObject(actionButton, "dialogID", @(dialogID), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        
         // Store the reference and ID for callback
-        [alertVC.view setTag:dialogID];
         alerts[@(dialogID)] = alertVC;
         
-        // Present the alert
+        // Present the alert with animation
         UIViewController *rootViewController = [UIApplication sharedApplication].keyWindow.rootViewController;
-        [rootViewController presentViewController:alertVC animated:YES completion:nil];
+        
+        // Add animation for showing dialog
+        dialogView.transform = CGAffineTransformMakeScale(0.8, 0.8);
+        dialogView.alpha = 0;
+        
+        [rootViewController presentViewController:alertVC animated:YES completion:^{
+            // Animate the dialog appearance
+            [UIView animateWithDuration:0.3 delay:0 usingSpringWithDamping:0.8 initialSpringVelocity:0.8 options:UIViewAnimationOptionCurveEaseOut animations:^{
+                dialogView.transform = CGAffineTransformIdentity;
+                dialogView.alpha = 1.0;
+            } completion:nil];
+        }];
     } @catch (NSException *exception) {
         NSLog(@"Exception in presentClashRoyaleDialog: %@", exception.reason);
     }
@@ -256,22 +324,32 @@ static UNDialogManager * shardDialogManager;
 // Button action handler
 - (void)dialogButtonTapped:(UIButton *)sender {
     @try {
-        UIView *dialogView = sender.superview;
-        while (dialogView && ![dialogView isKindOfClass:[UIViewController class]]) {
-            dialogView = dialogView.superview;
+        // Get the dialog ID from the associated object
+        NSNumber *dialogIDNumber = objc_getAssociatedObject(sender, "dialogID");
+        if (!dialogIDNumber) {
+            NSLog(@"No dialog ID associated with button");
+            return;
         }
         
-        if (dialogView) {
-            int dialogID = (int)dialogView.tag;
-            UIViewController *alertVC = alerts[@(dialogID)];
+        int dialogID = [dialogIDNumber intValue];
+        UIViewController *alertVC = alerts[@(dialogID)];
+        
+        if (alertVC) {
+            // Create animation for dismissal
+            UIView *dialogView = [sender superview];
             
-            if (alertVC) {
-                [alertVC dismissViewControllerAnimated:YES completion:^{
+            [UIView animateWithDuration:0.2 animations:^{
+                dialogView.transform = CGAffineTransformMakeScale(0.9, 0.9);
+                dialogView.alpha = 0;
+                alertVC.view.backgroundColor = [UIColor colorWithWhite:0 alpha:0];
+            } completion:^(BOOL finished) {
+                [alertVC dismissViewControllerAnimated:NO completion:^{
+                    // Important: Send message back to Unity AFTER the dialog is dismissed
                     NSString *tag = [NSString stringWithFormat:@"%d", dialogID];
                     UnitySendMessage("DialogManager", "OnSubmit", tag.UTF8String);
                     [self->alerts removeObjectForKey:@(dialogID)];
                 }];
-            }
+            }];
         }
     } @catch (NSException *exception) {
         NSLog(@"Exception in dialogButtonTapped: %@", exception.reason);
@@ -365,8 +443,30 @@ static UNDialogManager * shardDialogManager;
                 
                 UIViewController *alertVC = strongSelf->alerts[@(theID)];
                 if (alertVC) {
-                    [alertVC dismissViewControllerAnimated:YES completion:nil];
-                    [strongSelf->alerts removeObjectForKey:@(theID)];
+                    // Find the dialog view
+                    UIView *dialogView = nil;
+                    for (UIView *subview in alertVC.view.subviews) {
+                        if ([subview.layer.cornerRadius > 0]) {
+                            dialogView = subview;
+                            break;
+                        }
+                    }
+                    
+                    // Animate dismissal if we found the dialog view
+                    if (dialogView) {
+                        [UIView animateWithDuration:0.2 animations:^{
+                            dialogView.transform = CGAffineTransformMakeScale(0.9, 0.9);
+                            dialogView.alpha = 0;
+                            alertVC.view.backgroundColor = [UIColor colorWithWhite:0 alpha:0];
+                        } completion:^(BOOL finished) {
+                            [alertVC dismissViewControllerAnimated:NO completion:nil];
+                            [strongSelf->alerts removeObjectForKey:@(theID)];
+                        }];
+                    } else {
+                        // Fallback if we couldn't find the dialog view
+                        [alertVC dismissViewControllerAnimated:YES completion:nil];
+                        [strongSelf->alerts removeObjectForKey:@(theID)];
+                    }
                 }
             } @catch (NSException *exception) {
                 NSLog(@"Exception in dissmissDialog UI thread: %@", exception.reason);
