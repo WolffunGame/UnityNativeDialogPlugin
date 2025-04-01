@@ -289,10 +289,6 @@ static UNDialogManager * shardDialogManager;
         // Find the button and add tap action
         UIButton *actionButton = [dialogView viewWithTag:1];
         
-        // Use a weak reference to self to avoid retain cycle
-        __weak UNDialogManager *weakSelf = self;
-        __block int blockDialogID = dialogID;
-        
         // Add tap action to the button
         [actionButton addTarget:self action:@selector(dialogButtonTapped:) forControlEvents:UIControlEventTouchUpInside];
         
@@ -364,7 +360,7 @@ static UNDialogManager * shardDialogManager;
     @try {
         ++_id;
         
-        __block int currentID = _id;
+        __block int currentID = (int)_id; // Fix conversion warning
         __weak UNDialogManager *weakSelf = self;
         
         dispatch_async(dispatch_get_main_queue(), ^{
@@ -387,7 +383,7 @@ static UNDialogManager * shardDialogManager;
             }
         });
         
-        return _id;
+        return (int)_id; // Fix conversion warning
     } @catch (NSException *exception) {
         NSLog(@"Exception in showSelectDialog: %@", exception.reason);
         return -1;
@@ -402,7 +398,7 @@ static UNDialogManager * shardDialogManager;
     @try {
         ++_id;
         
-        __block int currentID = _id;
+        __block int currentID = (int)_id; // Fix conversion warning
         __weak UNDialogManager *weakSelf = self;
         
         dispatch_async(dispatch_get_main_queue(), ^{
@@ -425,7 +421,7 @@ static UNDialogManager * shardDialogManager;
             }
         });
         
-        return _id;
+        return (int)_id; // Fix conversion warning
     } @catch (NSException *exception) {
         NSLog(@"Exception in showSubmitDialog: %@", exception.reason);
         return -1;
@@ -446,7 +442,8 @@ static UNDialogManager * shardDialogManager;
                     // Find the dialog view
                     UIView *dialogView = nil;
                     for (UIView *subview in alertVC.view.subviews) {
-                        if ([subview.layer.cornerRadius > 0]) {
+                        // Fix the corner radius check
+                        if (subview.layer.cornerRadius > 0) {
                             dialogView = subview;
                             break;
                         }
